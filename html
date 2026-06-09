@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>駆動コア＆駆動ブロック ハードガチャ＆厳選シミュレーター</title>
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #333333;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 20px;
+        }
+        h2, h3, h4 {
+            color: #e65100;
+            border-bottom: 2px solid #ffb74d;
+            padding-bottom: 5px;
+            margin-top: 10px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            background-color: #f9f9f9;
+            border: 1px solid #dddddd;
+            border-radius: 8px;
+            padding: 15px;
+            flex: 1;
+            min-width: 320px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .select-group {
+            margin-bottom: 15px;
+        }
+        select, input[type="number"] {
+            background-color: #ffffff;
+            color: #333;
+            border: 1px solid #cccccc;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .shape-card {
+            background-color: #f0f0f0;
+            border: 2px solid #cccccc;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            white-space: pre-wrap;
+            font-family: monospace;
+            line-height: 1.2;
+            user-select: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .shape-card:hover {
+            background-color: #e0e0e0;
+        }
+        .shape-card.selected {
+            border-color: #e65100;
+            background-color: #ffe0b2;
+        }
+        .slot-badge {
+            background-color: #e65100;
+            color: #ffffff;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 10px;
+            position: absolute;
+            top: -10px;
+            right: -5px;
+            font-weight: bold;
+        }
+        .btn-gacha {
+            background-color: #ff9800;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.2s;
+        }
+        .btn-gacha:hover {
+            background-color: #e65100;
+        }
+        .btn-gacha:disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+        .gacha-result {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #ffffff;
+            border-left: 5px solid #ff9800;
+            border-radius: 4px;
+            border-top: 1px solid #eee;
+            border-right: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .score-table td {
+            padding: 6px;
+            border-bottom: 1px solid #eeeeee;
+        }
+        .grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .grid-progress {
+            background-color: #e65100;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        /* 5×4盤面のスタイル */
+        .board-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            grid-template-rows: repeat(4, 50px);
+            gap: 3px;
+            background-color: #dddddd;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        .board-cell {
+            background-color: #ffffff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-align: center;
+            cursor: default;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        .board-cell.occupied {
+            color: #ffffff;
+            cursor: pointer;
+        }
+        .board-cell.occupied:active {
+            transform: scale(0.95);
+        }
+        .board-cell.gold {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%) !important;
+            color: #000000 !important;
+            box-shadow: inset 0 0 5px rgba(255,255,255,0.8);
+        }
+        .detail-box {
+            background-color: #ffffff;
+            border: 1px solid #ccb299;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 15px;
+            min-height: 80px;
+            background-color: #fffde7;
+        }
+        .stat-summary {
+            background-color: #f1f1f1;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px solid #cccccc;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="color: #e65100; text-align: center; margin-bottom: 30px;">駆動厳選システム (ハードモード専用)</h1>
+
+    <div class="container">
+        
+        <div class="panel">
+            <h2>【駆動コア 10連ガチャ】</h2>
+            <div class="select-group">
+                <label><strong>1. 対象セットを選択: </strong></label>
+                <select id="coreSetSelect">
+                    <option value="LOST_LIGHT">失われた光</option>
+                    <option value="DIABOLOS">ディアボロス</option>
+                    <option value="DEVIL_BLOOD">悪魔の血：呪い</option>
+                    <option value="STREET_KING">ストリート拳王</option>
+                    <option value="FOREST_FIREFLY">森に棲む蛍の心</option>
+                    <option value="RED_TWINS">深紅の双生蝶</option>
+                    <option value="TIAS_BAR">ティアの夜間酒場</option>
+                    <option value="KINGDOM_GUARD">王国の守り</option>
+                    <option value="SONIC_HEDGEHOG">音速ヘッジホッグ</option>
+                    <option value="SILENT_VILLA">静寂な山荘</option>
+                    <option value="SHADOW_CREED">影の信条</option>
+                    <option value="LITTLE_ADVENTURE">小さな大冒険</option>
+                </select>
+            </div>
+            <button class="btn-gacha" onclick="rollCoreGacha10()" style="background-color: #4caf50;">
+                コア10連ガチャを引く (消費なし)
+            </button>
+            <div class="gacha-result" id="coreGachaResult" style="display: none;"></div>
+
+            <h2>【駆動ブロック ガチャ】</h2>
+            <div class="select-group">
+                <label><strong>1. ギアセットの選択: </strong></label>
+                <select id="gearSetSelect" onchange="updateGearSet()">
+                    <option value="DIABOLOS">ディアボロス</option>
+                    <option value="FOREST_FIREFLY">森に棲む蛍の心</option>
+                    <option value="TIAS_BAR">ティアの夜間酒場</option>
+                </select>
+            </div>
+
+            <div class="select-group">
+                <p><strong>2. 排出形状の選択 (最大8枠 / クリックで切替)</strong></p>
+                <p style="font-size: 0.85em; color: #666;">通常時は全12種からランダム。枠選択すると金のニンジンコインを消費します。</p>
+                <div id="coinCostDisplay" style="font-weight: bold; color: #e65100; margin-bottom: 10px;">
+                    現在の消費コスト: 金のニンジンコイン × 0
+                </div>
+                <div class="shape-grid" id="shapeGrid"></div>
+            </div>
+
+            <button class="btn-gacha" id="gachaBtn" onclick="rollBlockGacha10()">
+                ブロック10連ガチャを引く
+            </button>
+
+            <div class="gacha-result" id="blockGachaResult" style="display: none;"></div>
+        </div>
+
+        <div class="panel">
+            <h2>【優先点数設定】</h2>
+            <p style="font-size: 0.85em; color: #666;">左の数値を書き換えてブロックの評価基準を変更できます。</p>
+            <table class="score-table">
+                <thead>
+                    <tr><th>点数</th><th>ステータス名</th></tr>
+                </thead>
+                <tbody id="scoreTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="panel">
+            <div class="grid-header">
+                <h2>【現在の厳選状況（5×4盤面）】</h2>
+                <div class="grid-progress" id="gridProgress">0 / 0</div>
+            </div>
+            <p style="font-size: 0.85em; color: #666;">
+                対応ギアセットのブロックがはめ込まれます。同形状はスコア順に最大3つまで保持・敷き詰められます。<br>
+                <strong>※色付きのマスをタップすると下に詳細なサブステータスが表示されます。</strong>
+            </p>
+            
+            <div class="board-container">
+                <div class="board-grid" id="boardGrid"></div>
+            </div>
+
+            <div class="detail-box" id="selectedBlockDetail">
+                <span style="color: #888;">盤面のはめ込まれているマスをタップすると、ここにサブステータス詳細が表示されます。</span>
+            </div>
+
+            <div class="stat-summary">
+                <h3>【はめ込みブロックの合計ステータス】</h3>
+                <div class="stat-grid" id="totalStatsDisplay"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- データマスタ ---
+        const SHAPE_DATA = {
+            "II_VERTICAL":    { name: "Ⅱ型 (縦)",   multiplier: 2, color: "#673ab7" },
+            "II_HORIZONTAL":  { name: "Ⅱ型 (横)",   multiplier: 2, color: "#3f51b5" },
+            "III_VERTICAL":   { name: "Ⅲ型 (縦)",   multiplier: 3, color: "#00bcd4" },
+            "III_HORIZONTAL": { name: "Ⅲ型 (横)",   multiplier: 3, color: "#009688" },
+            "III_L_SHAPE_1":  { name: "Ⅲ型 (L1)",   multiplier: 3, color: "#4caf50" },
+            "III_L_SHAPE_2":  { name: "Ⅲ型 (L2)",   multiplier: 3, color: "#8bc34a" },
+            "III_L_SHAPE_3":  { name: "Ⅲ型 (L3)",   multiplier: 3, color: "#cddc39" },
+            "III_L_SHAPE_4":  { name: "Ⅲ型 (L4)",   multiplier: 3, color: "#ffeb3b" },
+            "IV_VERTICAL":    { name: "Ⅳ型 (縦)",   multiplier: 4, color: "#ff9800" },
+            "IV_HORIZONTAL":  { name: "Ⅳ型 (横)",   multiplier: 4, color: "#ff5722" },
+            "IV_Z_SHAPE":     { name: "Ⅳ型 (Z)",    multiplier: 4, color: "#9c27b0" },
+            "IV_T_SHAPE":     { name: "Ⅳ型 (T)",    multiplier: 4, color: "#e91e63" }
+        };
+
+        // コア メインステータス
+        const CORE_MAIN_STATS = [
+            "HP 37.5%", "攻撃 37.5%", "防御力 52.5%", "クリティカル率 30.0%", "クリティカルダメージ 60.0%",
+            "光異能ダメージ強化 37.5%", "闇異能ダメージ強化 37.5%", "相異能ダメージ強化 37.5%", 
+            "呪異能ダメージ強化 37.5%", "魂異能ダメージ強化 37.5%", "霊異能ダメージ強化 37.5%",
+            "精神ダメージ強化 37.5%", "治療アップ 34.5%", "ブレイクパワー 180", "連環パワー 180"
+        ];
+
+        // コア サブステータス数値
+        const CORE_SUB_STATS_POOL = {
+            "HP": 1000, "HP%": 12.5, "攻撃": 80, "攻撃%": 12.5, "防御力": 80, "防御力%": 17.5,
+            "クリティカル率": 10, "クリティカルダメージ": 20, "ダメージ": 10, "ブレイクパワー": 60, "連環パワー": 60
+        };
+
+        // ブロック サブステータス基礎数値 (ハード品質固定値)
+        const BLOCK_SUB_STATS_POOL = {
+            "HP": 100, "HP%": 1.25, "攻撃": 8, "攻撃%": 1.25, "防御力": 8, "防御力%": 1.75,
+            "クリティカル率": 1, "クリティカルダメージ": 2, "ダメージ": 1, "ブレイクパワー": 6, "連環パワー": 6
+        };
+
+        const ALL_SUB_STATS_KEYS = Object.keys(BLOCK_SUB_STATS_POOL);
+
+        // --- アプリケーション状態管理 (State) ---
+        let currentGearSet = "DIABOLOS";
+        let selectedSlots = []; // 任意選択枠（最大8）
+        
+        // 優先点数初期値
+        let statScores = {
+            "クリティカル率": 10,
+            "クリティカルダメージ": 10,
+            "攻撃力%": 5,
+            "ダメージ": 5,
+            "HP%": 1,
+            "防御力%": 1,
+            "ブレイクパワー": 1,
+            "HP": 1,
+            "攻撃": 1,
+            "防御力": 1,
+            "連環パワー": 1
+        };
+
+        // 各ギアセットにキープされているブロック配列 (5×4盤面用)
+        let equippedBlocks = {
+            "DIABOLOS": [],
+            "FOREST_FIREFLY": [],
+            "TIAS_BAR": []
+        };
+
+        // --- 初期化 ---
+        window.onload = function() {
+            renderShapeGrid();
+            renderScoreTable();
+            updateGearSet();
+        };
+
+        function renderShapeGrid() {
+            const grid = document.getElementById("shapeGrid");
+            grid.innerHTML = "";
+            Object.keys(SHAPE_DATA).forEach(key => {
+                const item = SHAPE_DATA[key];
+                const card = document.createElement("div");
+                card.className = "shape-card";
+                card.id = `shape-${key}`;
+                card.innerHTML = `<div style='font-size:0.85em; font-weight:bold;'>${item.name}</div><div style='font-size:0.75em; color:#666;'>倍率: ×${item.multiplier}</div>`;
+                card.onclick = () => toggleShapeSelection(key);
+                grid.appendChild(card);
+            });
+        }
+
+        function renderScoreTable() {
+            const tbody = document.getElementById("scoreTableBody");
+            tbody.innerHTML = "";
+            // 表示名マッピング調整 (内部キーの「攻撃力%」等をプールと同期)
+            Object.keys(statScores).forEach(stat => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td style="width: 80px;">
+                        <input type="number" value="${statScores[stat]}" min="0" max="100" 
+                               style="width: 55px;" onchange="updateScoreWeight('${stat}', this.value)">
+                    </td>
+                    <td style="font-weight:bold;">${stat}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // --- コア10連ガチャロジック ---
+        function rollCoreGacha10() {
+            const resultDiv = document.getElementById("coreGachaResult");
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = "<h3>【ガチャ獲得結果 (駆動コア)】</h3>";
+
+            for(let i = 0; i < 10; i++) {
+                const main = CORE_MAIN_STATS[Math.floor(Math.random() * CORE_MAIN_STATS.length)];
+                let shuffled = Object.keys(CORE_SUB_STATS_POOL).sort(() => 0.5 - Math.random());
+                let subs = shuffled.slice(0, 4).map(k => {
+                    const isPct = k.includes("%") || k.includes("率") || k.includes("ダメージ");
+                    return `${k}+${CORE_SUB_STATS_POOL[k]}${isPct ? '%' : ''}`;
+                });
+
+                const itemP = document.createElement("p");
+                itemP.style.margin = "5px 0";
+                itemP.style.fontSize = "0.9em";
+                itemP.style.borderBottom = "1px solid #eee";
+                itemP.innerHTML = `<strong>${i+1}個目:</strong> メイン[${main}] <br> <span style="color:#555;">サブ: [${subs.join(", ")}]</span>`;
+                resultDiv.appendChild(itemP);
+            }
+        }
+
+        // --- ブロック選択＆コスト計算 ---
+        function toggleShapeSelection(key) {
+            const index = selectedSlots.indexOf(key);
+            if (index > -1) {
+                selectedSlots.splice(index, 1);
+            } else {
+                if (selectedSlots.length >= 8) {
+                    alert("選択できる形状は最大8枠までです。");
+                    return;
+                }
+                selectedSlots.push(key);
+            }
+            updateShapeCardStyles();
+            calculateGoldCoinCost();
+        }
+
+        function updateShapeCardStyles() {
+            Object.keys(SHAPE_DATA).forEach(key => {
+                const card = document.getElementById(`shape-${key}`);
+                const oldBadge = card.querySelector(".slot-badge");
+                if (oldBadge) oldBadge.remove();
+
+                const count = selectedSlots.filter(k => k === key).length;
+                if (count > 0) {
+                    card.classList.add("selected");
+                    const badge = document.createElement("span");
+                    badge.className = "slot-badge";
+                    badge.innerText = `${count}枠`;
+                    card.appendChild(badge);
+                } else {
+                    card.classList.remove("selected");
+                }
+            });
+        }
+
+        function calculateGoldCoinCost() {
+            if (selectedSlots.length === 0) {
+                document.getElementById("coinCostDisplay").innerText = "現在の消費コスト: 金のニンジンコイン × 0";
+                return 0;
+            }
+            let counts = {};
+            selectedSlots.forEach(key => { counts[key] = (counts[key] || 0) + 1; });
+
+            let totalCost = 0;
+            Object.keys(counts).forEach(key => {
+                const count = counts[key];
+                for (let i = 1; i <= count; i++) {
+                    totalCost += (10 + 5 * (i - 1));
+                }
+            });
+            document.getElementById("coinCostDisplay").innerText = `現在の消費コスト: 金のニンジンコイン × ${totalCost}`;
+            return totalCost;
+        }
+
+        function updateScoreWeight(stat, value) {
+            statScores[stat] = parseInt(value) || 0;
+            // スコア変更に伴い現在のキープ品スコアを再計算
+            equippedBlocks[currentGearSet].forEach(b => {
+                b.score = calculateBlockScore(b.sub_stats);
+            });
+            updateEquippedDisplay();
+        }
+
+        function updateGearSet() {
+            currentGearSet = document.getElementById("gearSetSelect").value;
+            document.getElementById("selectedBlockDetail").innerHTML = '<span style="color: #888;">盤面のはめ込まれているマスをタップすると、ここにサブステータス詳細が表示されます。</span>';
+            updateEquippedDisplay();
+        }
+
+        function getMaxPossibleScore() {
+            // プール内のキーから点数の高い上位4つを合算
+            let sorted = Object.keys(BLOCK_SUB_STATS_POOL).map(k => {
+                // スコア定義側の表記揺れ（攻撃力% / 攻撃%）を吸収
+                let scoreKey = k === "攻撃%" ? "攻撃力%" : k;
+                return statScores[scoreKey] || 0;
+            }).sort((a, b) => b - a);
+            return sorted.slice(0, 4).reduce((sum, val) => sum + val, 0);
+        }
+
+        function calculateBlockScore(subStats) {
+            return subStats.reduce((sum, stat) => {
+                let scoreKey = stat === "攻撃%" ? "攻撃力%" : stat;
+                return sum + (statScores[scoreKey] || 0);
+            }, 0);
+        }
+
+        // --- ブロック10連ガチャ実行 & 複数キープ厳選ロジック ---
+        function rollBlockGacha10() {
+            const spentCoin = calculateGoldCoinCost();
+            const resultDiv = document.getElementById("blockGachaResult");
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = `<h3>【ガチャ獲得結果 (駆動ブロック)】</h3><p style="color: #e65100; font-weight:bold;">消費した総コイン: 金のニンジンコイン × ${spentCoin * 10} (10回分)</p>`;
+
+            for (let g = 0; g < 10; g++) {
+                let chosenKey = "";
+                if (selectedSlots.length === 0) {
+                    // 通常時：全12種から均等ランダム
+                    const keys = Object.keys(SHAPE_DATA);
+                    chosenKey = keys[Math.floor(Math.random() * keys.length)];
+                } else {
+                    // 選択時：セットした枠から均等ランダム
+                    chosenKey = selectedSlots[Math.floor(Math.random() * selectedSlots.length)];
+                }
+
+                const shapeInfo = SHAPE_DATA[chosenKey];
+                const baseHp = 50, baseAtk = 5; // ハード基礎値
+                const finalHp = Math.round(baseHp * shapeInfo.multiplier);
+                const finalAtk = Math.round(baseAtk * shapeInfo.multiplier);
+
+                // サブステ4種抽出
+                let shuffled = [...ALL_SUB_STATS_KEYS].sort(() => 0.5 - Math.random());
+                let pulledSubs = shuffled.slice(0, 4);
+                const newScore = calculateBlockScore(pulledSubs);
+
+                const newBlock = {
+                    id: Date.now() + Math.random(),
+                    shapeKey: chosenKey,
+                    shapeName: shapeInfo.name,
+                    hp: finalHp,
+                    atk: finalAtk,
+                    sub_stats: pulledSubs,
+                    score: newScore
+                };
+
+                // 臨機応変な複数スロットキープ判定 (同型は最大3つまで保持)
+                let setList = equippedBlocks[currentGearSet];
+                let sameShapeBlocks = setList.filter(b => b.shapeKey === chosenKey);
+                const maxAllowed = 3; 
+
+                let notice = "";
+                if (sameShapeBlocks.length < maxAllowed) {
+                    // 空き枠あり
+                    equippedBlocks[currentGearSet].push(newBlock);
+                    notice = `<span style='color: #4caf50;'>[厳選成功] 盤面に空きがあるため自動配置 (${newScore}点)</span>`;
+                } else {
+                    // 満杯時は最小スコアの既存ブロックと比較
+                    sameShapeBlocks.sort((a, b) => a.score - b.score);
+                    if (newScore > sameShapeBlocks[0].score) {
+                        const targetIndex = setList.findIndex(b => b.id === sameShapeBlocks[0].id);
+                        equippedBlocks[currentGearSet][targetIndex] = newBlock;
+                        notice = `<span style='color: #4caf50;'>[厳選成功] 既存の同型(${sameShapeBlocks[0].score}点)を上書き! (${newScore}点)</span>`;
+                    } else {
+                        notice = `<span style='color: #999;'>[キープ失敗] 既存の同型型が高点数のため破棄 (${newScore}点)</span>`;
+                    }
+                }
+
+                const p = document.createElement("div");
+                p.style.fontSize = "0.85em";
+                p.style.borderBottom = "1px solid #ddd";
+                p.style.padding = "4px 0";
+                p.innerHTML = `<strong>${g+1}回目:</strong> ${shapeInfo.name} | メイン: HP+${finalHp}, 攻+${finalAtk} | サブ: [${pulledSubs.join(", ")}] -> ${notice}`;
+                resultDiv.appendChild(p);
+            }
+
+            updateEquippedDisplay();
+        }
+
+        // --- 右側：5×4盤面の描画 & ステータス合算 ---
+        function updateEquippedDisplay() {
+            const board = document.getElementById("boardGrid");
+            board.innerHTML = "";
+            
+            const setList = equippedBlocks[currentGearSet];
+            const maxScorePerBlock = getMaxPossibleScore();
+
+            // 5×4マス分(計20セル)の仮想配列
+            let gridOccupancy = Array(20).fill(null);
+            let cellPointer = 0;
+
+            // キープ中のブロックのサイズ(マス数)に応じて敷き詰め
+            setList.forEach(block => {
+                const size = SHAPE_DATA[block.shapeKey].multiplier;
+                const isGold = block.score >= maxScorePerBlock;
+                for (let i = 0; i < size; i++) {
+                    if (cellPointer < 20) {
+                        gridOccupancy[cellPointer] = { block: block, isGold: isGold };
+                        cellPointer++;
+                    }
+                }
+            });
+
+            // 実際のDOM要素生成
+            gridOccupancy.forEach((cell, idx) => {
+                const div = document.createElement("div");
+                div.className = "board-cell";
+                
+                if (cell) {
+                    div.classList.add("occupied");
+                    div.style.backgroundColor = SHAPE_DATA[cell.block.shapeKey].color;
+                    div.innerText = cell.block.shapeName.replace("型", "");
+                    if (cell.isGold) {
+                        div.classList.add("gold");
+                    }
+                    // クリックイベント
+                    div.onclick = () => showBlockDetail(cell.block);
+                } else {
+                    div.style.backgroundColor = "#ffffff";
+                    div.style.color = "#ccc";
+                    div.innerText = "";
+                }
+                board.appendChild(div);
+            });
+
+            // 進捗計算式: 各ブロックの点数合計 / ブロックの最大点数 × ブロック数
+            let totalGridScore = setList.reduce((sum, b) => sum + b.score, 0);
+            const blockCount = setList.length;
+            const maxGridScore = maxScorePerBlock * blockCount;
+            const progressValue = maxGridScore > 0 ? ((totalGridScore / maxScorePerBlock) * blockCount).toFixed(2) : "0.00";
+
+            document.getElementById("gridProgress").innerText = 
+                blockCount > 0 ? `${totalGridScore} / ${maxGridScore} (進捗: ${progressValue})` : "0 / 0";
+
+            calculateAndDisplayTotalStats(setList);
+        }
+
+        // ブロック詳細表示
+        function showBlockDetail(block) {
+            const detailBox = document.getElementById("selectedBlockDetail");
+            const maxScore = getMaxPossibleScore();
+            const isGoldText = block.score >= maxScore ? " <span style='color:#d4af37; font-weight:bold;'>★MAX</span>" : "";
+            
+            detailBox.innerHTML = `
+                <div style="font-weight:bold; color:#e65100; font-size:1.05em;">選択中: ${block.shapeName}${isGoldText}</div>
+                <div>評価点数: <strong>${block.score}点</strong> (個別メイン: HP+${block.hp} / 攻撃+${block.atk})</div>
+                <div style="margin-top:5px; font-size:0.9em; color:#444;">
+                    <strong>[サブステータス詳細値]</strong><br>
+                    ${block.sub_stats.map(s => {
+                        const baseVal = BLOCK_SUB_STATS_POOL[s];
+                        const isPct = s.includes("%") || s.includes("率") || s.includes("ダメージ");
+                        return `・${s}: +${baseVal}${isPct ? '%' : ''}`;
+                    }).join("<br>")}
+                </div>
+            `;
+        }
+
+        // 合計ステータス表示処理
+        function calculateAndDisplayTotalStats(setList) {
+            const display = document.getElementById("totalStatsDisplay");
+            let totalHp = 0;
+            let totalAtk = 0;
+            let subTotals = {};
+
+            // 初期化
+            ALL_SUB_STATS_KEYS.forEach(k => subTotals[k] = 0);
+
+            // 集計
+            setList.forEach(block => {
+                totalHp += block.hp;
+                totalAtk += block.atk;
+                block.sub_stats.forEach(stat => {
+                    subTotals[stat] += BLOCK_SUB_STATS_POOL[stat];
+                });
+            });
+
+            display.innerHTML = `
+                <div><strong>HP合計 (メイン):</strong> +${totalHp}</div>
+                <div><strong>攻撃力合計 (メイン):</strong> +${totalAtk}</div>
+            `;
+
+            Object.keys(subTotals).forEach(stat => {
+                if (subTotals[stat] > 0) {
+                    const isPct = stat.includes("%") || stat.includes("率") || stat.includes("ダメージ");
+                    const valText = isPct ? `${subTotals[stat].toFixed(2)}%` : `+${subTotals[stat]}`;
+                    
+                    const div = document.createElement("div");
+                    div.innerHTML = `<strong>${stat}:</strong> ${valText}`;
+                    display.appendChild(div);
+                }
+            });
+
+            if (setList.length === 0) {
+                display.innerHTML += "<div style='color:#888; grid-column: span 2; text-align:center;'>現在盤面にはめ込まれているブロックはありません。</div>";
+            }
+        }
+    </script>
+</body>
+</html>
